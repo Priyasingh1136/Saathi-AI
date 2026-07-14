@@ -47,6 +47,7 @@ class SaathiApp {
     // 4. Bind Global Components
     this.setupAssistant();
     this.setupGlobalVoiceOverlay();
+    this.setupWhatsAppSimulator();
     if (window.lucide) {
       window.lucide.createIcons();
     }
@@ -148,14 +149,15 @@ class SaathiApp {
     const overlay = document.getElementById('voice-overlay');
     const previewBox = document.getElementById('voice-preview-text');
     const statusHint = document.getElementById('voice-status-title');
-    const waveEl = document.getElementById('voice-wave-visual');
 
     if (!overlay || !previewBox) return;
 
     overlay.classList.add('active');
     previewBox.innerText = 'Speak now... (बोलिए...)';
     statusHint.innerText = 'Listening...';
-    waveEl.classList.add('listening');
+    
+    // Start canvas wave loops
+    this.startWaveAnimation();
 
     let transcriptResult = '';
 
@@ -191,10 +193,70 @@ class SaathiApp {
 
   closeVoiceOverlay() {
     const overlay = document.getElementById('voice-overlay');
-    const waveEl = document.getElementById('voice-wave-visual');
     if (overlay) overlay.classList.remove('active');
-    if (waveEl) waveEl.classList.remove('listening');
+    this.stopWaveAnimation();
     VoiceController.stop();
+  }
+
+  startWaveAnimation() {
+    const canvas = document.getElementById('voice-wave-canvas');
+    if (!canvas) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    
+    let phase = 0;
+    this.waveAnimating = true;
+
+    const draw = () => {
+      if (!this.waveAnimating) return;
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw 3 layers of overlapping sinus waves with varied HSL opacities
+      const waves = [
+        { color: 'rgba(37, 99, 235, 0.45)', amplitude: 18, frequency: 0.025, speed: 0.08 },  // Primary Blue
+        { color: 'rgba(16, 185, 129, 0.45)', amplitude: 12, frequency: 0.04, speed: -0.06 },  // Secondary Green
+        { color: 'rgba(245, 158, 11, 0.35)', amplitude: 8, frequency: 0.015, speed: 0.1 }     // Accent Gold
+      ];
+
+      waves.forEach(w => {
+        ctx.beginPath();
+        ctx.strokeStyle = w.color;
+        ctx.lineWidth = 2;
+        
+        for (let x = 0; x < width; x++) {
+          // Envelope calculation to taper wave edges
+          const envelope = Math.sin((x / width) * Math.PI);
+          const y = Math.sin(x * w.frequency + phase) * w.amplitude * envelope + (height / 2);
+          
+          if (x === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      });
+
+      phase += 0.12;
+      this.waveAnimationId = requestAnimationFrame(draw);
+    };
+
+    draw();
+  }
+
+  stopWaveAnimation() {
+    this.waveAnimating = false;
+    if (this.waveAnimationId) {
+      cancelAnimationFrame(this.waveAnimationId);
+    }
   }
 
   setupGlobalVoiceOverlay() {
@@ -341,6 +403,107 @@ class SaathiApp {
 
     container.appendChild(bubble);
     container.scrollTop = container.scrollHeight; // Scroll to bottom
+    return bubble;
+  }
+
+  // --- WHATSAPP SIMULATOR INTEGRATION ---
+  setupWhatsAppSimulator() {
+    const waBtn = document.getElementById('whatsapp-btn');
+    const waDialog = document.getElementById('whatsapp-dialog');
+    const waClose = document.getElementById('whatsapp-close');
+    const sendBtn = document.getElementById('whatsapp-send-btn');
+    const msgInput = document.getElementById('whatsapp-msg-input');
+    const messagesContainer = document.getElementById('whatsapp-messages-container');
+
+    if (!waBtn || !waDialog) return;
+
+    waBtn.addEventListener('click', () => {
+      const isActive = waDialog.classList.toggle('active');
+      if (isActive) {
+        msgInput.focus();
+        if (messagesContainer && messagesContainer.children.length === 0) {
+          this.appendWhatsAppMessage('bot', "Ram Ram partner! Main Saathi Bot hu. WhatsApp par transaction record karne ke liye yahan message karein. <br><br>Jaise: <b>'spent 250 on fuel'</b> ya <b>'850 earning Swiggy'</b>. Try kijiye!");
+        }
+      }
+    });
+
+    if (waClose) {
+      waClose.addEventListener('click', () => waDialog.classList.remove('active'));
+    }
+
+    const triggerSendMessage = () => {
+      const text = msgInput.value.trim();
+      if (!text) return;
+      msgInput.value = '';
+      this.handleWhatsAppConversation(text);
+    };
+
+    if (sendBtn) {
+      sendBtn.addEventListener('click', triggerSendMessage);
+    }
+    if (msgInput) {
+      msgInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          triggerSendMessage();
+        }
+      });
+    }
+  }
+
+  handleWhatsAppConversation(text) {
+    // 1. Append user message
+    this.appendWhatsAppMessage('user', text);
+
+    // 2. Parse message command after short simulated typing latency
+    setTimeout(() => {
+      const parsed = VoiceController.parseCommand(text);
+      let reply = '';
+      
+      if (parsed && parsed.amount) {
+        // Save
+        Storage.saveTransaction(parsed);
+        
+        const typeHindi = parsed.type === 'income' ? 'कमाई (Income)' : 'खर्च (Expense)';
+        reply = `Theek hai partner! Main aapki <b>₹${parsed.amount}</b> ki ${parsed.category} ${typeHindi} entry record kar li hai. 👍<br><br><i>Tariq: ${parsed.date}</i>`;
+        
+        this.notify("WhatsApp Logged", `Recorded ₹${parsed.amount} ${parsed.category} successfully.`, "success");
+        
+        // Refresh current active view if it's dashboard or history
+        if (this.activeView === 'dashboard' || this.activeView === 'history') {
+          this.loadView(this.activeView);
+        }
+      } else {
+        reply = "Maaf kijiyega partner, mujhe details samajh nahi aayi. Kripya is tarah likhein: <br>• <i>'850 kamaye delivery se'</i><br>• <i>'Spent 200 on petrol'</i>";
+        this.notify("Parse Warning", "Failed to extract amount or category.", "warning");
+      }
+
+      this.appendWhatsAppMessage('bot', reply);
+    }, 800);
+  }
+
+  appendWhatsAppMessage(sender, htmlText) {
+    const container = document.getElementById('whatsapp-messages-container');
+    if (!container) return null;
+
+    const bubble = document.createElement('div');
+    bubble.className = `wa-msg ${sender}`;
+    
+    const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    
+    // Add blue double checkmarks tick indicator for user message
+    const ticks = sender === 'user' ? ' <i class="lucide-check-check" style="font-size:0.75rem; color:#53bdeb; display:inline-block; vertical-align:middle; margin-left: 2px;"></i>' : '';
+    
+    bubble.innerHTML = `
+      <span>${htmlText}</span>
+      <span class="wa-msg-meta">${timeStr}${ticks}</span>
+    `;
+
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+    
+    // Trigger Lucide updates for check-check checkmark icons
+    if (window.lucide) window.lucide.createIcons();
+    
     return bubble;
   }
 }

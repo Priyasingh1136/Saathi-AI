@@ -546,3 +546,218 @@
 .toast.success .toast-progress { background-color: rgba(var(--secondary-rgb), 0.25); }
 .toast.warning .toast-progress { background-color: rgba(var(--accent-rgb), 0.25); }
 .toast.error .toast-progress { background-color: rgba(var(--danger-rgb), 0.25); }
+
+/* WhatsApp Simulator Layouts */
+.whatsapp-container {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+@media (min-width: 768px) {
+  .whatsapp-container {
+    bottom: 30px;
+    left: 30px;
+  }
+}
+
+.whatsapp-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-full);
+  background-color: #25D366;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-xl);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  animation: pulse-glow 3s infinite;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.whatsapp-btn:hover {
+  transform: scale(1.05);
+  background-color: #20ba5a;
+}
+
+.whatsapp-btn i {
+  font-size: 1.75rem;
+}
+
+.whatsapp-dialog {
+  display: none;
+  width: 90vw;
+  max-width: 360px;
+  height: 460px;
+  background-color: #efeae2;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  z-index: 1000;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.whatsapp-dialog.active {
+  display: flex;
+}
+
+.wa-header {
+  background-color: #075E54;
+  color: white;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wa-profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #075E54;
+  font-weight: 700;
+  font-size: 1.1rem;
+  border: 1.5px solid #128C7E;
+}
+
+.wa-partner-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: var(--font-family-display);
+}
+
+.wa-status {
+  font-size: 0.65rem;
+  color: #25D366;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.wa-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #25D366;
+  display: inline-block;
+}
+
+.wa-close-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  opacity: 0.8;
+  cursor: pointer;
+  font-size: 1.25rem;
+  transition: opacity var(--transition-fast);
+}
+
+.wa-close-btn:hover {
+  opacity: 1;
+}
+
+.wa-messages-box {
+  flex-grow: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+  background-repeat: repeat;
+}
+
+.wa-msg {
+  max-width: 85%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  position: relative;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+}
+
+.wa-msg.user {
+  background-color: #d9fdd3;
+  color: #303030;
+  align-self: flex-end;
+  border-bottom-right-radius: 0;
+}
+
+.wa-msg.bot {
+  background-color: #ffffff;
+  color: #303030;
+  align-self: flex-start;
+  border-bottom-left-radius: 0;
+}
+
+.wa-msg-meta {
+  font-size: 0.65rem;
+  color: #8696a0;
+  text-align: right;
+  display: block;
+  margin-top: 0.15rem;
+  margin-left: 2rem;
+}
+
+.wa-msg.user .wa-msg-meta i {
+  color: #53bdeb;
+  margin-left: 2px;
+}
+
+.wa-input-row {
+  padding: 0.5rem 0.75rem;
+  background-color: #f0f2f5;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wa-input {
+  flex-grow: 1;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background-color: white;
+  font-size: 0.85rem;
+  outline: none;
+  color: black !important;
+}
+
+.wa-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background-color: #128C7E;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.wa-send-btn:hover {
+  background-color: #075E54;
+}
+
+.wa-send-btn i {
+  font-size: 1.1rem;
+}

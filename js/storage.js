@@ -77,6 +77,47 @@ export const Storage = {
     localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(list));
   },
 
+  getEarningStreak() {
+    const list = this.getTransactions();
+    const incomeDates = list
+      .filter(tx => tx.type === 'income')
+      .map(tx => tx.date);
+
+    if (incomeDates.length === 0) return 0;
+
+    const uniqueDates = new Set(incomeDates);
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    let startDate = null;
+    if (uniqueDates.has(todayStr)) {
+      startDate = new Date();
+    } else if (uniqueDates.has(yesterdayStr)) {
+      startDate = yesterday;
+    } else {
+      return 0; // No earning today or yesterday, streak is 0
+    }
+
+    let streak = 0;
+    // We clone the startDate to prevent side effects
+    let checkDate = new Date(startDate.getTime());
+
+    while (true) {
+      const checkStr = checkDate.toISOString().split('T')[0];
+      if (uniqueDates.has(checkStr)) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  },
+
   // --- GOALS ---
   getGoals() {
     try {

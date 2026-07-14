@@ -11,6 +11,7 @@ export const DashboardView = {
     // 1. Get calculations from storage
     const txList = Storage.getTransactions();
     const goals = Storage.getGoals();
+    const streak = Storage.getEarningStreak();
 
     const todayStr = new Date().toISOString().split('T')[0];
     let todayIncome = 0;
@@ -194,6 +195,18 @@ export const DashboardView = {
               <span class="stat-card-label">Today's Savings</span>
               <span class="stat-card-value" style="color: ${todaySavings >= 0 ? 'var(--secondary)' : 'var(--danger)'};">
                 ₹${todaySavings}
+              </span>
+            </div>
+          </div>
+
+          <div class="card stat-card streak animate-slide-up" style="animation-delay: 0.12s; border-color: rgba(245, 158, 11, 0.25);">
+            <div class="stat-card-icon" style="background-color: rgba(245, 158, 11, 0.12); color: var(--accent);">
+              <i class="lucide-flame"></i>
+            </div>
+            <div class="stat-card-details">
+              <span class="stat-card-label">Earning Streak</span>
+              <span class="stat-card-value" style="color: var(--accent); font-family: var(--font-family-display); font-weight:700;">
+                ${streak} Days 🔥
               </span>
             </div>
           </div>

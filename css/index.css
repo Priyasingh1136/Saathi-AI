@@ -402,3 +402,80 @@ a {
 .animate-fade-in {
   animation: fadeIn var(--transition-normal) forwards;
 }
+
+/* Premium Mesh Background Auroras */
+.aura-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity var(--transition-normal);
+}
+
+body.dark .aura-container {
+  opacity: 0.25;
+}
+
+.aura-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+  animation: float-aura 25s infinite alternate ease-in-out;
+}
+
+body.dark .aura-blob {
+  mix-blend-mode: screen;
+  filter: blur(120px);
+  opacity: 0.4;
+}
+
+.aura-blob-primary {
+  width: 45vw;
+  height: 45vw;
+  background-color: rgba(37, 99, 235, 0.15); /* primary blue */
+  top: -10%;
+  left: -10%;
+  animation-duration: 20s;
+}
+
+.aura-blob-secondary {
+  width: 50vw;
+  height: 50vw;
+  background-color: rgba(16, 185, 129, 0.12); /* secondary green */
+  bottom: -15%;
+  right: -10%;
+  animation-duration: 28s;
+  animation-delay: -5s;
+}
+
+.aura-blob-accent {
+  width: 35vw;
+  height: 35vw;
+  background-color: rgba(245, 158, 11, 0.1); /* accent amber */
+  top: 35%;
+  left: 45%;
+  animation-duration: 24s;
+  animation-delay: -10s;
+}
+
+@keyframes float-aura {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(40px, -60px) scale(1.08);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.96);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}

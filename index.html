@@ -22,6 +22,13 @@
 </head>
 <body>
 
+  <!-- Premium Mesh Background Auroras -->
+  <div class="aura-container">
+    <div class="aura-blob aura-blob-primary"></div>
+    <div class="aura-blob aura-blob-secondary"></div>
+    <div class="aura-blob aura-blob-accent"></div>
+  </div>
+
   <div id="app-container">
     
     <!-- 1. DESKTOP SIDEBAR NAVIGATION -->
@@ -146,17 +153,9 @@
         <h2 id="voice-status-title">Listening...</h2>
         <p>Aap jo bhi bolenge, hum form me bhar denge.</p>
         
-        <!-- Speech waves animation -->
-        <div id="voice-wave-visual" class="voice-waves">
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
-          <div class="voice-bar"></div>
+        <!-- Speech waves animation canvas -->
+        <div style="width: 100%; height: 80px; margin-bottom: 1.5rem; display: flex; justify-content: center; align-items: center;">
+          <canvas id="voice-wave-canvas" style="width: 100%; height: 100%; max-width: 320px; border-radius: var(--radius-md);"></canvas>
         </div>
 
         <!-- Live speech preview box -->
@@ -170,7 +169,42 @@
       </div>
     </div>
 
-    <!-- 6. GLOBAL TOAST ALERTS CONTAINER -->
+    <!-- 6. WHATSAPP SIMULATOR INTEGRATION -->
+    <div class="whatsapp-container">
+      <div id="whatsapp-dialog" class="whatsapp-dialog">
+        <!-- WA Header -->
+        <div class="wa-header">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="wa-profile-avatar">S</div>
+            <div style="display: flex; flex-direction: column;">
+              <span class="wa-partner-name">Saathi WhatsApp Bot</span>
+              <span class="wa-status"><span class="wa-status-dot"></span> Online (ऑनलाइन)</span>
+            </div>
+          </div>
+          <button id="whatsapp-close" class="wa-close-btn"><i class="lucide-x"></i></button>
+        </div>
+        
+        <!-- WA Messages list -->
+        <div id="whatsapp-messages-container" class="wa-messages-box">
+          <!-- Messages will be populated by app.js -->
+        </div>
+
+        <!-- WA Input form row -->
+        <div class="wa-input-row">
+          <input type="text" id="whatsapp-msg-input" class="wa-input" placeholder="Type: 'Aaj delivery se 800 kamaye'...">
+          <button id="whatsapp-send-btn" class="wa-send-btn">
+            <i class="lucide-send-horizontal"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- WA floating button -->
+      <button id="whatsapp-btn" class="whatsapp-btn" title="Open WhatsApp Simulator">
+        <i class="lucide-message-circle"></i>
+      </button>
+    </div>
+
+    <!-- 7. GLOBAL TOAST ALERTS CONTAINER -->
     <div id="toast-container" class="toast-container">
       <!-- Toasts inserted dynamically by app.js -->
     </div>
