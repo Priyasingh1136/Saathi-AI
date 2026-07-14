@@ -9,9 +9,9 @@ import { Storage } from '../storage.js';
 export const GoalsView = {
   activeGoalToEdit: null, // Holds goal object when editing
 
-  render() {
-    const goals = Storage.getGoals();
-    const txList = Storage.getTransactions();
+  async render() {
+    const goals = await Storage.getGoals();
+    const txList = await Storage.getTransactions();
 
     // Calculate average daily savings from transaction history (last 30 days)
     const thirtyDaysAgo = new Date();
@@ -152,7 +152,7 @@ export const GoalsView = {
     `;
   },
 
-  init() {
+  async init() {
     this.setupModalListeners();
     this.setupGoalActions();
   },
@@ -199,7 +199,7 @@ export const GoalsView = {
 
     // Save Goal handler
     if (form) {
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('goal-id').value;
         const name = document.getElementById('goal-name').value;
@@ -220,10 +220,10 @@ export const GoalsView = {
         };
         if (id) goalObj.id = id;
 
-        Storage.saveGoal(goalObj);
+        await Storage.saveGoal(goalObj);
         window.app.notify("Success", id ? "Goal updated successfully." : "Goal created successfully.", "success");
         hideModal();
-        window.app.loadView('goals'); // Re-render
+        await window.app.loadView('goals'); // Re-render
       });
     }
   },
@@ -231,9 +231,9 @@ export const GoalsView = {
   setupGoalActions() {
     // Edit goals triggers
     document.querySelectorAll('.edit-goal-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
-        const goals = Storage.getGoals();
+        const goals = await Storage.getGoals();
         const found = goals.find(g => g.id === id);
         if (found) {
           // Open modal with pre-populated values
@@ -252,12 +252,12 @@ export const GoalsView = {
 
     // Delete goals triggers
     document.querySelectorAll('.delete-goal-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         if (confirm("Are you sure you want to delete this savings goal?")) {
-          Storage.deleteGoal(id);
+          await Storage.deleteGoal(id);
           window.app.notify("Success", "Savings goal deleted.", "success");
-          window.app.loadView('goals');
+          await window.app.loadView('goals');
         }
       });
     });

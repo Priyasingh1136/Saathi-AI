@@ -239,7 +239,7 @@ export const AddTransactionView = {
     const form = document.getElementById('tx-manual-form');
     if (!form) return;
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const amount = parseFloat(document.getElementById('tx-amount').value);
@@ -259,7 +259,7 @@ export const AddTransactionView = {
         date
       };
 
-      Storage.saveTransaction(tx);
+      await Storage.saveTransaction(tx);
       window.app.notify("Success", "Transaction recorded successfully.", "success");
 
       // Redirect back to Dashboard

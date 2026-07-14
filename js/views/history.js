@@ -11,8 +11,8 @@ export const HistoryView = {
   searchQuery: '',
   selectedCategory: 'all',
 
-  render() {
-    const txList = Storage.getTransactions();
+  async render() {
+    const txList = await Storage.getTransactions();
     
     // Get unique categories for dropdown filter
     const categoriesSet = new Set(txList.map(t => t.category));
@@ -137,19 +137,19 @@ export const HistoryView = {
     `;
   },
 
-  init() {
+  async init() {
     this.setupFilters();
     this.setupExports();
 
     // Attach click listeners to transaction deletes
     document.querySelectorAll('.tx-delete-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
         if (confirm("Are you sure you want to delete this transaction?")) {
-          Storage.deleteTransaction(id);
+          await Storage.deleteTransaction(id);
           window.app.notify("Success", "Transaction deleted successfully.", "success");
-          window.app.loadView('history'); // Re-render
+          await window.app.loadView('history'); // Re-render
         }
       });
     });
@@ -189,8 +189,8 @@ export const HistoryView = {
     // CSV Export
     const csvBtn = document.getElementById('btn-export-csv');
     if (csvBtn) {
-      csvBtn.addEventListener('click', () => {
-        const csvStr = Storage.exportToCSV();
+      csvBtn.addEventListener('click', async () => {
+        const csvStr = await Storage.exportToCSV();
         if (!csvStr) {
           window.app.notify("No Data", "No transactions found to export.", "warning");
           return;

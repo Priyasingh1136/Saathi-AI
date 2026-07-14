@@ -7,11 +7,11 @@
 import { Storage } from '../storage.js';
 
 export const DashboardView = {
-  render() {
+  async render() {
     // 1. Get calculations from storage
-    const txList = Storage.getTransactions();
-    const goals = Storage.getGoals();
-    const streak = Storage.getEarningStreak();
+    const txList = await Storage.getTransactions();
+    const goals = await Storage.getGoals();
+    const streak = await Storage.getEarningStreak();
 
     const todayStr = new Date().toISOString().split('T')[0];
     let todayIncome = 0;
@@ -257,19 +257,20 @@ export const DashboardView = {
   },
 
   // Initialize event listeners and Chart.js instances after DOM render
-  init() {
+  async init() {
     this.updateGreeting();
-    this.renderCharts();
+    const txList = await Storage.getTransactions();
+    this.renderCharts(txList);
 
     // Attach click listeners to transaction deletes
     document.querySelectorAll('.tx-delete-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
         if (confirm("Are you sure you want to delete this transaction?")) {
-          Storage.deleteTransaction(id);
+          await Storage.deleteTransaction(id);
           window.app.notify("Success", "Transaction deleted successfully.", "success");
-          window.app.loadView('dashboard'); // Re-render
+          await window.app.loadView('dashboard'); // Re-render
         }
       });
     });
@@ -306,9 +307,7 @@ export const DashboardView = {
     return iconMap[category] || iconMap.Other;
   },
 
-  renderCharts() {
-    const txList = Storage.getTransactions();
-    
+  renderCharts(txList) {
     // Check if Chart.js is loaded
     if (typeof Chart === 'undefined') {
       console.warn("Chart.js is not loaded.");

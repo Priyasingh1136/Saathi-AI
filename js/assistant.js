@@ -15,9 +15,9 @@ export const AssistantController = {
   },
 
   // Generates current context summary for the AI assistant
-  getFinancialContext() {
-    const txs = Storage.getTransactions();
-    const goals = Storage.getGoals();
+  async getFinancialContext() {
+    const txs = await Storage.getTransactions();
+    const goals = await Storage.getGoals();
     
     // Calculate basic aggregates
     const todayStr = new Date().toISOString().split('T')[0];
@@ -81,7 +81,7 @@ export const AssistantController = {
     if (this.isGeminiEnabled()) {
       return await this.callGeminiAPI(messageText);
     } else {
-      return this.getLocalResponse(messageText);
+      return await this.getLocalResponse(messageText);
     }
   },
 
@@ -89,7 +89,7 @@ export const AssistantController = {
   async callGeminiAPI(prompt) {
     const settings = Storage.getSettings();
     const apiKey = settings.geminiApiKey;
-    const context = this.getFinancialContext();
+    const context = await this.getFinancialContext();
     
     const systemPrompt = `You are Saathi AI, a warm, supportive voice-first financial companion for India's informal workforce (delivery partners, auto-rickshaw drivers, street vendors, and daily wage workers).
 Respond in a clear, friendly manner. You can use English, Hindi, or Hinglish (Hindi written in Roman characters) matching the user's query language.
@@ -139,14 +139,14 @@ Answer the user's question directly based on this data. If they ask about saving
       return data.candidates[0].content.parts[0].text;
     } catch (e) {
       console.error("Failed to query Gemini API", e);
-      return `[Gemini API Error: ${e.message}]. Falling back to local offline helper:\n\n${this.getLocalResponse(prompt)}`;
+      return `[Gemini API Error: ${e.message}]. Falling back to local offline helper:\n\n${await this.getLocalResponse(prompt)}`;
     }
   },
 
   // Generates offline, rule-based responses matching common questions
-  getLocalResponse(prompt) {
+  async getLocalResponse(prompt) {
     const text = prompt.toLowerCase();
-    const context = this.getFinancialContext();
+    const context = await this.getFinancialContext();
 
     // 1. Check earnings / today's income
     if (text.includes('earn') || text.includes('kamaya') || text.includes('kamaye') || text.includes('kamai') || text.includes('earning') || text.includes('कमाया') || text.includes('कमाए') || text.includes('कमाई')) {
@@ -182,7 +182,7 @@ Answer the user's question directly based on this data. If they ask about saving
     for (const [catName, keywords] of Object.entries(categoryKeywords)) {
       if (keywords.some(kw => text.includes(kw))) {
         // Calculate category total
-        const txs = Storage.getTransactions();
+        const txs = await Storage.getTransactions();
         let catTotal = 0;
         txs.forEach(tx => {
           if (tx.type === 'expense' && tx.category === catName) {
@@ -195,7 +195,7 @@ Answer the user's question directly based on this data. If they ask about saving
 
     // 5. Monthly summary
     if (text.includes('month') || text.includes('mahine') || text.includes('summary') || text.includes('महीना') || text.includes('विवरण')) {
-      const txs = Storage.getTransactions();
+      const txs = await Storage.getTransactions();
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       let mIncome = 0;

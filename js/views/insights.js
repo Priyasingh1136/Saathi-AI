@@ -7,9 +7,9 @@
 import { Storage } from '../storage.js';
 
 export const InsightsView = {
-  render() {
-    const txList = Storage.getTransactions();
-    const goals = Storage.getGoals();
+  async render() {
+    const txList = await Storage.getTransactions();
+    const goals = await Storage.getGoals();
 
     // 1. Calculations setup
     const today = new Date();

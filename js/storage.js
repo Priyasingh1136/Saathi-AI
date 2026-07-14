@@ -1,12 +1,10 @@
 /**
- * Saathi AI - Storage Engine
- * Handles all CRUD operations via localStorage for Transactions, Savings Goals, and Settings.
- * Includes a realistic mock data generator for demo purposes.
+ * Saathi AI - Storage Engine (IndexedDB Migration)
+ * Manages asynchronous CRUD operations for Transactions and Savings Goals using IndexedDB.
+ * Settings preferences continue using synchronous localStorage to prevent theme startup flickers.
  */
 
 const STORAGE_KEYS = {
-  TRANSACTIONS: 'saathi_tx',
-  GOALS: 'saathi_goals',
   SETTINGS: 'saathi_settings',
   INITIALIZED: 'saathi_init'
 };
@@ -16,20 +14,60 @@ const DEFAULT_SETTINGS = {
   theme: 'light', // 'light', 'dark'
   notifications: true,
   voiceResponses: true,
-  geminiApiKey: ''
+  geminiApiKey: '',
+  themeColor: '#2563EB'
 };
 
+const DB_NAME = 'SaathiAIDB';
+const DB_VERSION = 1;
+
 export const Storage = {
-  // Initialize mock data if application is opened for the first time
-  init() {
+  db: null,
+
+  // Initialize DB and populate mock data if application is opened for the first time
+  async init() {
+    await this.initDB();
     if (!localStorage.getItem(STORAGE_KEYS.INITIALIZED)) {
       this.saveSettings(DEFAULT_SETTINGS);
-      this.populateMockData();
+      await this.populateMockData();
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
     }
   },
 
-  // --- SETTINGS ---
+  // Initialize IndexedDB schema
+  initDB() {
+    return new Promise((resolve, reject) => {
+      if (this.db) {
+        return resolve(this.db);
+      }
+
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onerror = (e) => {
+        console.error("IndexedDB failed to open:", e.target.error);
+        reject(e.target.error);
+      };
+
+      request.onsuccess = (e) => {
+        this.db = e.target.result;
+        resolve(this.db);
+      };
+
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        // Create transactions store
+        if (!db.objectStoreNames.contains('transactions')) {
+          db.createObjectStore('transactions', { keyPath: 'id' });
+        }
+        // Create goals store
+        if (!db.objectStoreNames.contains('goals')) {
+          db.createObjectStore('goals', { keyPath: 'id' });
+        }
+      };
+    });
+  },
+
+  // --- SETTINGS (localStorage - Synchronous) ---
   getSettings() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
@@ -44,41 +82,64 @@ export const Storage = {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   },
 
-  // --- TRANSACTIONS ---
-  getTransactions() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error("Failed to parse transactions", e);
-      return [];
-    }
+  // --- TRANSACTIONS (IndexedDB - Asynchronous) ---
+  async getTransactions() {
+    await this.initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['transactions'], 'readonly');
+      const store = transaction.objectStore('transactions');
+      const request = store.getAll();
+
+      request.onerror = (e) => reject(e.target.error);
+      request.onsuccess = () => {
+        const list = request.result || [];
+        // Sort descending: Newest transactions first (by date, fallback to ID)
+        list.sort((a, b) => {
+          const dateCompare = new Date(b.date) - new Date(a.date);
+          if (dateCompare !== 0) return dateCompare;
+          return b.id.localeCompare(a.id);
+        });
+        resolve(list);
+      };
+    });
   },
 
-  saveTransaction(tx) {
-    const list = this.getTransactions();
-    // Add unique ID and timestamp if not present
-    const newTx = {
-      id: tx.id || 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      amount: parseFloat(tx.amount) || 0,
-      category: tx.category || 'Other',
-      description: tx.description || '',
-      type: tx.type || 'expense', // 'income' or 'expense'
-      date: tx.date || new Date().toISOString().split('T')[0]
-    };
-    list.unshift(newTx); // Insert at the beginning (newest first)
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(list));
-    return newTx;
+  async saveTransaction(tx) {
+    await this.initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['transactions'], 'readwrite');
+      const store = transaction.objectStore('transactions');
+
+      const newTx = {
+        id: tx.id || 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        amount: parseFloat(tx.amount) || 0,
+        category: tx.category || 'Other',
+        description: tx.description || '',
+        type: tx.type || 'expense', // 'income' or 'expense'
+        date: tx.date || new Date().toISOString().split('T')[0]
+      };
+
+      const request = store.put(newTx);
+      
+      transaction.oncomplete = () => resolve(newTx);
+      transaction.onerror = (e) => reject(e.target.error);
+    });
   },
 
-  deleteTransaction(id) {
-    let list = this.getTransactions();
-    list = list.filter(item => item.id !== id);
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(list));
+  async deleteTransaction(id) {
+    await this.initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['transactions'], 'readwrite');
+      const store = transaction.objectStore('transactions');
+      const request = store.delete(id);
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = (e) => reject(e.target.error);
+    });
   },
 
-  getEarningStreak() {
-    const list = this.getTransactions();
+  async getEarningStreak() {
+    const list = await this.getTransactions();
     const incomeDates = list
       .filter(tx => tx.type === 'income')
       .map(tx => tx.date);
@@ -98,11 +159,10 @@ export const Storage = {
     } else if (uniqueDates.has(yesterdayStr)) {
       startDate = yesterday;
     } else {
-      return 0; // No earning today or yesterday, streak is 0
+      return 0; // Streak broken
     }
 
     let streak = 0;
-    // We clone the startDate to prevent side effects
     let checkDate = new Date(startDate.getTime());
 
     while (true) {
@@ -118,52 +178,54 @@ export const Storage = {
     return streak;
   },
 
-  // --- GOALS ---
-  getGoals() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.GOALS);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error("Failed to parse goals", e);
-      return [];
-    }
+  // --- GOALS (IndexedDB - Asynchronous) ---
+  async getGoals() {
+    await this.initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['goals'], 'readonly');
+      const store = transaction.objectStore('goals');
+      const request = store.getAll();
+
+      request.onerror = (e) => reject(e.target.error);
+      request.onsuccess = () => resolve(request.result || []);
+    });
   },
 
-  saveGoal(goal) {
-    const list = this.getGoals();
-    const isEdit = !!goal.id;
-    const finalGoal = {
-      id: goal.id || 'goal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      name: goal.name || 'Savings Goal',
-      target: parseFloat(goal.target) || 0,
-      current: parseFloat(goal.current) || 0,
-      targetDate: goal.targetDate || new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0] // 90 days from now default
-    };
+  async saveGoal(goal) {
+    await this.initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['goals'], 'readwrite');
+      const store = transaction.objectStore('goals');
 
-    if (isEdit) {
-      const idx = list.findIndex(item => item.id === goal.id);
-      if (idx !== -1) {
-        list[idx] = finalGoal;
-      } else {
-        list.push(finalGoal);
-      }
-    } else {
-      list.push(finalGoal);
-    }
-    
-    localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(list));
-    return finalGoal;
+      const finalGoal = {
+        id: goal.id || 'goal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        name: goal.name || 'Savings Goal',
+        target: parseFloat(goal.target) || 0,
+        current: parseFloat(goal.current) || 0,
+        targetDate: goal.targetDate || new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0]
+      };
+
+      const request = store.put(finalGoal);
+
+      transaction.oncomplete = () => resolve(finalGoal);
+      transaction.onerror = (e) => reject(e.target.error);
+    });
   },
 
-  deleteGoal(id) {
-    let list = this.getGoals();
-    list = list.filter(item => item.id !== id);
-    localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(list));
+  async deleteGoal(id) {
+    await this.initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['goals'], 'readwrite');
+      const store = transaction.objectStore('goals');
+      const request = store.delete(id);
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = (e) => reject(e.target.error);
+    });
   },
 
-  // CSV Exporter helper
-  exportToCSV() {
-    const txList = this.getTransactions();
+  async exportToCSV() {
+    const txList = await this.getTransactions();
     if (txList.length === 0) return null;
 
     const headers = ['ID', 'Date', 'Type', 'Amount (INR)', 'Category', 'Description'];
@@ -176,12 +238,11 @@ export const Storage = {
       `"${tx.description.replace(/"/g, '""')}"`
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    return csvContent;
+    return [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
   },
 
-  // Generates dummy data that behaves cleanly for the demonstration
-  populateMockData() {
+  // Populate dynamic mock values inside IndexedDB on first load
+  async populateMockData() {
     const today = new Date();
     const getPastDateStr = (daysAgo) => {
       const d = new Date(today);
@@ -189,7 +250,6 @@ export const Storage = {
       return d.toISOString().split('T')[0];
     };
 
-    // Prepopulate 12 transactions detailing a standard delivery partner's or driver's week
     const mockTx = [
       { id: 'tx_1', amount: 850, category: 'Delivery', description: 'Daily payout - Swiggy', type: 'income', date: getPastDateStr(0) },
       { id: 'tx_2', amount: 250, category: 'Fuel', description: 'Petrol for bike', type: 'expense', date: getPastDateStr(0) },
@@ -205,13 +265,33 @@ export const Storage = {
       { id: 'tx_12', amount: 2000, category: 'Rent', description: 'Garage rent payment', type: 'expense', date: getPastDateStr(6) }
     ];
 
-    // Prepopulate 2 goals
     const mockGoals = [
-      { id: 'goal_1', name: 'Naya Mobile Phone (New Smartphone)', target: 12000, current: 4800, targetDate: getPastDateStr(-45) }, // 45 days in future
-      { id: 'goal_2', name: 'Tyre Replace & Service', target: 5000, current: 3500, targetDate: getPastDateStr(-15) } // 15 days in future
+      { id: 'goal_1', name: 'Naya Mobile Phone (New Smartphone)', target: 12000, current: 4800, targetDate: getPastDateStr(-45) },
+      { id: 'goal_2', name: 'Tyre Replace & Service', target: 5000, current: 3500, targetDate: getPastDateStr(-15) }
     ];
 
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(mockTx));
-    localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(mockGoals));
+    // Write mocks async
+    await this.initDB();
+    
+    // Transactions
+    const txTransaction = this.db.transaction(['transactions'], 'readwrite');
+    const txStore = txTransaction.objectStore('transactions');
+    mockTx.forEach(t => txStore.put(t));
+
+    // Goals
+    const goalTransaction = this.db.transaction(['goals'], 'readwrite');
+    const goalStore = goalTransaction.objectStore('goals');
+    mockGoals.forEach(g => goalStore.put(g));
+
+    return new Promise((resolve) => {
+      // Resolve once transactions commit
+      let count = 0;
+      const done = () => {
+        count++;
+        if (count === 2) resolve();
+      };
+      txTransaction.oncomplete = done;
+      goalTransaction.oncomplete = done;
+    });
   }
 };

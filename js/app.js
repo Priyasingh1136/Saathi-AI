@@ -28,9 +28,9 @@ class SaathiApp {
     this.activeView = 'dashboard';
   }
 
-  init() {
+  async init() {
     // 1. Initialize Storage (loads mock data if first time)
-    Storage.init();
+    await Storage.init();
 
     // 2. Load Theme Settings
     const settings = Storage.getSettings();
@@ -39,10 +39,13 @@ class SaathiApp {
     } else {
       document.body.classList.remove('dark');
     }
+    
+    // Apply accent color
+    this.applyThemeColor(settings.themeColor || '#2563EB');
 
     // 3. Register SPA Router
     window.addEventListener('hashchange', () => this.handleRouting());
-    this.handleRouting(); // First load
+    await this.handleRouting(); // First load
 
     // 4. Bind Global Components
     this.setupAssistant();
@@ -54,12 +57,12 @@ class SaathiApp {
   }
 
   // SPA Route Resolver
-  handleRouting() {
+  async handleRouting() {
     const hash = window.location.hash.replace('#', '') || 'dashboard';
-    this.loadView(hash);
+    await this.loadView(hash);
   }
 
-  loadView(route) {
+  async loadView(route) {
     const view = this.routes[route];
     if (!view) {
       console.error(`Route "${route}" not found. Redirecting to dashboard.`);
@@ -70,14 +73,42 @@ class SaathiApp {
     this.activeView = route;
     const appEl = document.getElementById('app');
     if (appEl) {
-      appEl.innerHTML = view.render();
-      if (window.lucide) {
-        window.lucide.createIcons();
+      // Add loading state spinner while database resolves
+      appEl.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; height:60vh;">
+          <i class="lucide-loader-2 animate-spin" style="font-size:2rem; color:var(--primary);"></i>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+
+      try {
+        const renderHTML = await view.render();
+        appEl.innerHTML = renderHTML;
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+        await view.init();
+      } catch (e) {
+        console.error("View rendering error:", e);
+        appEl.innerHTML = `<div class="card" style="margin:2rem; color:var(--danger); padding:2rem; text-align:center;"><h3>Failed to load page</h3><p>${e.message}</p></div>`;
       }
-      view.init();
     }
 
     this.updateNavigationVisuals(route);
+  }
+
+  applyThemeColor(hexColor) {
+    if (!hexColor) return;
+    document.documentElement.style.setProperty('--primary', hexColor);
+
+    const cleanHex = hexColor.replace('#', '');
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+    
+    if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+      document.documentElement.style.setProperty('--primary-rgb', `${r}, ${g}, ${b}`);
+    }
   }
 
   updateNavigationVisuals(route) {
@@ -455,13 +486,13 @@ class SaathiApp {
     this.appendWhatsAppMessage('user', text);
 
     // 2. Parse message command after short simulated typing latency
-    setTimeout(() => {
+    setTimeout(async () => {
       const parsed = VoiceController.parseCommand(text);
       let reply = '';
       
       if (parsed && parsed.amount) {
         // Save
-        Storage.saveTransaction(parsed);
+        await Storage.saveTransaction(parsed);
         
         const typeHindi = parsed.type === 'income' ? 'कमाई (Income)' : 'खर्च (Expense)';
         reply = `Theek hai partner! Main aapki <b>₹${parsed.amount}</b> ki ${parsed.category} ${typeHindi} entry record kar li hai. 👍<br><br><i>Tariq: ${parsed.date}</i>`;
@@ -470,7 +501,7 @@ class SaathiApp {
         
         // Refresh current active view if it's dashboard or history
         if (this.activeView === 'dashboard' || this.activeView === 'history') {
-          this.loadView(this.activeView);
+          await this.loadView(this.activeView);
         }
       } else {
         reply = "Maaf kijiyega partner, mujhe details samajh nahi aayi. Kripya is tarah likhein: <br>• <i>'850 kamaye delivery se'</i><br>• <i>'Spent 200 on petrol'</i>";

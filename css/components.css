@@ -56,13 +56,13 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), #1d4ed8);
+  background: linear-gradient(135deg, var(--primary), rgba(0, 0, 0, 0.15));
   color: white;
   box-shadow: 0 4px 10px rgba(var(--primary-rgb), 0.2);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-hover), #1e40af);
+  filter: brightness(0.95);
   box-shadow: 0 6px 14px rgba(var(--primary-rgb), 0.35);
   transform: translateY(-1px);
 }
@@ -368,7 +368,8 @@
 }
 
 .assistant-send-btn:hover {
-  color: var(--primary-hover);
+  color: var(--primary);
+  opacity: 0.8;
 }
 
 /* Speech Waves & Listening Animations Overlay */

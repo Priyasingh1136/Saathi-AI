@@ -1,7 +1,7 @@
 /**
  * Saathi AI - Settings View
- * Renders user configurations (Theme, Language, Notifications, Voice Synthesis,
- * and Gemini API Key authorization).
+ * Renders user configurations (Theme, Accent Color, Language, Notifications,
+ * Voice Synthesis, and Gemini API Key authorization).
  */
 
 import { Storage } from '../storage.js';
@@ -9,13 +9,25 @@ import { Storage } from '../storage.js';
 export const SettingsView = {
   render() {
     const settings = Storage.getSettings();
+    const presets = ['#2563EB', '#10B981', '#8B5CF6', '#F97316', '#F43F5E'];
+
+    const presetsHTML = presets.map(color => {
+      const isActive = settings.themeColor === color;
+      return `
+        <div class="color-preset" data-color="${color}" 
+          style="background-color: ${color}; width: 2rem; height: 2rem; border-radius: 50%; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; 
+          box-shadow: ${isActive ? '0 0 0 2px var(--bg-card), 0 0 0 4px var(--primary)' : '0 0 0 1px rgba(0,0,0,0.1)'}; 
+          transform: ${isActive ? 'scale(1.1)' : 'none'};">
+        </div>
+      `;
+    }).join('');
 
     return `
       <div class="view-container animate-fade-in">
         <div class="view-header">
           <div class="view-header-title">
             <h1>Settings</h1>
-            <p>Adjust language, voice preferences, themes, and AI API credentials.</p>
+            <p>Adjust language, theme accents, voice feedback, and AI credentials.</p>
           </div>
         </div>
 
@@ -40,7 +52,7 @@ export const SettingsView = {
               </div>
             </div>
 
-            <!-- Theme Toggle -->
+            <!-- Dark Theme Toggle -->
             <div class="settings-row">
               <div class="settings-info">
                 <span class="settings-label">Dark Theme (डार्क मोड)</span>
@@ -52,6 +64,31 @@ export const SettingsView = {
                   <span class="slider"></span>
                 </label>
               </div>
+            </div>
+
+            <!-- Theme Accent Color Selector -->
+            <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+              <div class="settings-info">
+                <span class="settings-label">Theme Accent Color (थीम का रंग)</span>
+                <span class="settings-desc">Choose a primary highlight color for buttons, widgets, and streaks.</span>
+              </div>
+              
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; width: 100%; margin-top: 0.25rem;">
+                <!-- Preset color circular rings -->
+                <div id="presets-container" style="display: flex; gap: 0.75rem;">
+                  ${presetsHTML}
+                </div>
+
+                <!-- Custom HTML5 Color Input -->
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Custom:</span>
+                  <input type="color" id="custom-color-picker" value="${settings.themeColor}" 
+                    style="width: 2.2rem; height: 2.2rem; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
+                </div>
+              </div>
+              
+              <!-- Hidden input to store chosen hex color -->
+              <input type="hidden" id="selected-theme-color" value="${settings.themeColor}">
             </div>
 
             <!-- Notifications Toggle -->
@@ -116,7 +153,7 @@ export const SettingsView = {
     `;
   },
 
-  init() {
+  async init() {
     this.setupSettingsActions();
   },
 
@@ -124,6 +161,40 @@ export const SettingsView = {
     const saveBtn = document.getElementById('btn-save-settings');
     const visibilityBtn = document.getElementById('btn-toggle-key-visibility');
     const keyInput = document.getElementById('set-gemini-key');
+
+    const selectedColorInput = document.getElementById('selected-theme-color');
+    const customColorPicker = document.getElementById('custom-color-picker');
+    const colorPresets = document.querySelectorAll('.color-preset');
+
+    // Preset color click handler
+    colorPresets.forEach(preset => {
+      preset.addEventListener('click', () => {
+        const color = preset.getAttribute('data-color');
+        selectedColorInput.value = color;
+        customColorPicker.value = color;
+
+        // Update rings visual
+        colorPresets.forEach(p => {
+          const isCurrent = p === preset;
+          p.style.boxShadow = isCurrent ? '0 0 0 2px var(--bg-card), 0 0 0 4px var(--primary)' : '0 0 0 1px rgba(0,0,0,0.1)';
+          p.style.transform = isCurrent ? 'scale(1.1)' : 'none';
+        });
+      });
+    });
+
+    // Custom color picker input listener
+    if (customColorPicker) {
+      customColorPicker.addEventListener('input', (e) => {
+        const color = e.target.value;
+        selectedColorInput.value = color;
+
+        // Clear active visual presets
+        colorPresets.forEach(p => {
+          p.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.1)';
+          p.style.transform = 'none';
+        });
+      });
+    }
 
     // Toggle Key Visibility
     if (visibilityBtn && keyInput) {
@@ -139,19 +210,21 @@ export const SettingsView = {
 
     // Save Action
     if (saveBtn) {
-      saveBtn.addEventListener('click', () => {
+      saveBtn.addEventListener('click', async () => {
         const lang = document.getElementById('set-lang').value;
         const themeChecked = document.getElementById('set-theme').checked;
         const notifChecked = document.getElementById('set-notif').checked;
         const voiceChecked = document.getElementById('set-voice').checked;
         const key = document.getElementById('set-gemini-key').value.trim();
+        const themeColor = selectedColorInput.value;
 
         const updatedSettings = {
           language: lang,
           theme: themeChecked ? 'dark' : 'light',
           notifications: notifChecked,
           voiceResponses: voiceChecked,
-          geminiApiKey: key
+          geminiApiKey: key,
+          themeColor: themeColor
         };
 
         Storage.saveSettings(updatedSettings);
@@ -163,8 +236,13 @@ export const SettingsView = {
           document.body.classList.remove('dark');
         }
 
+        // Apply accent color immediately
+        if (window.app && window.app.applyThemeColor) {
+          window.app.applyThemeColor(themeColor);
+        }
+
         window.app.notify("Success", "Settings updated successfully.", "success");
-        window.app.loadView('settings'); // Re-render settings view
+        await window.app.loadView('settings'); // Re-render settings view
       });
     }
   }
