@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Saathi AI – Your Voice-First Financial Companion</title>
+  <meta name="description" content="Saathi AI is a premium financial voice companion designed for India's informal workforce (delivery partners, auto drivers, street vendors, and helpers) to manage income, expenses, and savings goals offline or via Gemini AI.">
+  
+  <!-- SEO & OpenGraph Meta Tags -->
+  <meta property="og:title" content="Saathi AI – Your Voice-First Financial Companion">
+  <meta property="og:description" content="Track gig earnings and expenses seamlessly using voice in Hindi, English, and Hinglish.">
+  <meta property="og:type" content="website">
+
+  <!-- Core Styling Sheets -->
+  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/views.css">
+
+  <!-- Chart.js and Lucide Icons via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <div id="app-container">
+    
+    <!-- 1. DESKTOP SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="lucide-sparkles"></i>
+        <span>Saathi AI</span>
+      </div>
+
+      <nav class="sidebar-menu">
+        <a href="#dashboard" class="nav-link active">
+          <i class="lucide-layout-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#add_tx" class="nav-link">
+          <i class="lucide-plus-circle"></i>
+          <span>Add Entry</span>
+        </a>
+        <a href="#history" class="nav-link">
+          <i class="lucide-history"></i>
+          <span>History</span>
+        </a>
+        <a href="#goals" class="nav-link">
+          <i class="lucide-target"></i>
+          <span>Savings Goals</span>
+        </a>
+        <a href="#insights" class="nav-link">
+          <i class="lucide-trending-up"></i>
+          <span>AI Insights</span>
+        </a>
+        <a href="#settings" class="nav-link">
+          <i class="lucide-settings"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar profile details -->
+      <div class="sidebar-profile">
+        <div class="profile-avatar">S</div>
+        <div class="profile-info">
+          <span class="profile-name">Saathi Partner</span>
+          <span class="profile-role">India's Workforce</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 2. MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-nav">
+      <a href="#dashboard" class="nav-link active">
+        <i class="lucide-layout-dashboard"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#history" class="nav-link">
+        <i class="lucide-history"></i>
+        <span>History</span>
+      </a>
+      <a href="#add_tx" class="nav-link nav-link-add">
+        <i class="lucide-mic"></i>
+      </a>
+      <a href="#goals" class="nav-link">
+        <i class="lucide-target"></i>
+        <span>Goals</span>
+      </a>
+      <a href="#insights" class="nav-link">
+        <i class="lucide-sparkles"></i>
+        <span>Insights</span>
+      </a>
+    </nav>
+
+    <!-- 3. MAIN WORKSPACE / VIEWS VIEWPORT -->
+    <main class="main-viewport">
+      <div id="app">
+        <!-- SPA views are dynamically mounted here -->
+        <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+          <i class="lucide-loader-2 animate-spin" style="font-size:2rem; color:var(--primary);"></i>
+        </div>
+      </div>
+    </main>
+
+    <!-- 4. FLOATING AI CHAT ASSISTANT COMPONENT -->
+    <div class="assistant-container">
+      
+      <!-- Collapsed Dialog Panel -->
+      <div id="assistant-dialog" class="assistant-dialog">
+        <div class="assistant-header">
+          <div class="assistant-title">
+            <i class="lucide-sparkles"></i>
+            <h3>Saathi AI</h3>
+            <span id="assistant-model-badge" class="assistant-model-badge">
+              <i class="lucide-cpu"></i> Local Fallback
+            </span>
+          </div>
+          <button id="assistant-close" class="assistant-close"><i class="lucide-x"></i></button>
+        </div>
+
+        <!-- Chat thread list -->
+        <div id="assistant-messages-container" class="assistant-messages">
+          <!-- Chat messages added dynamically -->
+        </div>
+
+        <!-- Typing input footer -->
+        <div class="assistant-input-container">
+          <button id="assistant-chat-mic-btn" class="btn btn-icon assistant-mic-btn" title="Speak to Saathi">
+            <i class="lucide-mic"></i>
+          </button>
+          <input type="text" id="assistant-msg-input" class="assistant-input" placeholder="Ask today's earning, saving tips...">
+          <button id="assistant-send-btn" class="assistant-send-btn" title="Send message">
+            <i class="lucide-send-horizontal"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Trigger floating button -->
+      <button id="assistant-btn" class="assistant-btn" title="Open Saathi Assistant">
+        <i class="lucide-sparkles"></i>
+      </button>
+    </div>
+
+    <!-- 5. GLOBAL SPEECH RECORDING OVERLAY -->
+    <div id="voice-overlay" class="voice-overlay">
+      <div class="voice-card">
+        <h2 id="voice-status-title">Listening...</h2>
+        <p>Aap jo bhi bolenge, hum form me bhar denge.</p>
+        
+        <!-- Speech waves animation -->
+        <div id="voice-wave-visual" class="voice-waves">
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+          <div class="voice-bar"></div>
+        </div>
+
+        <!-- Live speech preview box -->
+        <div id="voice-preview-text" class="voice-preview-box">
+          Speak now...
+        </div>
+
+        <button id="voice-overlay-close" class="btn btn-danger" style="width: 100%;">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- 6. GLOBAL TOAST ALERTS CONTAINER -->
+    <div id="toast-container" class="toast-container">
+      <!-- Toasts inserted dynamically by app.js -->
+    </div>
+
+  </div>
+
+  <!-- Main ES App Script Module -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

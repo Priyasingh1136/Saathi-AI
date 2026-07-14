@@ -1,0 +1,19 @@
+# OS Files
+Thumbs.db
+EHthumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / IDE configuration
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Personal configurations
+*.local
+.env
+.env.local
